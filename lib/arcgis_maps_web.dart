@@ -21,6 +21,8 @@ class ArcGISPoint {
   });
 }
 
+typedef Geometry = dynamic;
+
 class ArcGISEnvironment {
   static String apiKey = '';
   static LicenseResult setLicenseUsingKey(String key) => LicenseResult();
@@ -53,6 +55,8 @@ class Layer {
   bool isVisible;
   Envelope? fullExtent;
   dynamic featureTable;
+  LoadStatus loadStatus = LoadStatus.loaded;
+  SpatialReference? spatialReference = SpatialReference.wgs84;
 
   Layer({
     required this.name,
@@ -60,16 +64,30 @@ class Layer {
     this.fullExtent,
     this.featureTable,
   });
+
+  Future<void> load() async {
+    loadStatus = LoadStatus.loaded;
+  }
+
+  void clearSelection() {}
+  void selectFeature(dynamic feature) {}
+}
+
+class FeatureLayer extends Layer {
+  FeatureLayer({required super.name, super.isVisible, super.fullExtent, super.featureTable});
+  FeatureLayer.withItem({dynamic item, int? layerId})
+      : super(name: 'FeatureLayer');
 }
 
 class ArcGISMap {
   SpatialReference? spatialReference = SpatialReference.wgs84;
-  List<Layer> operationalLayers = [
+  List<dynamic> operationalLayers = [
     Layer(name: 'Assam_Flooded_Areas', isVisible: true),
     Layer(name: 'Assam_Buildings', isVisible: true),
     Layer(name: 'Assam_Emergency_Shelters', isVisible: true),
   ];
   LoadStatus loadStatus = LoadStatus.loaded;
+  dynamic loadError;
 
   ArcGISMap.withItem(PortalItem item);
 
@@ -169,7 +187,39 @@ class Stop {
 
 class RouteParameters {
   SpatialReference? outputSpatialReference;
+  bool returnRoutes = true;
+  bool returnDirections = true;
+  bool returnStops = true;
   void setStops(List<Stop> stops) {}
+}
+
+class Route {
+  Polyline? routeGeometry;
+  double totalLength = 1000.0;
+  double totalTime = 5.0;
+}
+
+class RouteResult {
+  List<Route> routes = [Route()];
+}
+
+class RouteTask {
+  String? apiKey;
+  LoadStatus loadStatus = LoadStatus.loaded;
+
+  RouteTask.withUri(Uri uri);
+
+  Future<void> load() async {
+    loadStatus = LoadStatus.loaded;
+  }
+
+  Future<RouteParameters> createDefaultParameters() async => RouteParameters();
+  Future<RouteResult> solveRoute(RouteParameters params) async => RouteResult();
+}
+
+class LinearUnit {
+  static const LinearUnit meters = LinearUnit._();
+  const LinearUnit._();
 }
 
 class Envelope {
@@ -195,6 +245,9 @@ class Viewpoint {
 }
 
 class ArcGISMapViewViewController {
+  ArcGISMap? arcGISMap;
+  List<GraphicsOverlay> graphicsOverlays = [];
+
   Viewpoint? _currentViewpoint = Viewpoint.fromCenter(
     ArcGISPoint(x: 93.8320717, y: 26.6445128, spatialReference: SpatialReference.wgs84),
     scale: 25000.0,
@@ -250,7 +303,6 @@ class _ArcGISMapViewWebState extends State<ArcGISMapView> {
       color: const Color(0xFF0F172A),
       child: Stack(
         children: [
-          // Background web map graphics representation
           Positioned.fill(
             child: CustomPaint(
               painter: _WebMapPainter(),
@@ -314,7 +366,6 @@ class _WebMapPainter extends CustomPainter {
       canvas.drawLine(Offset(0, i), Offset(size.width, i), gridPaint);
     }
 
-    // Flood polygon representation
     final floodPaint = Paint()
       ..color = Colors.blue.withOpacity(0.25)
       ..style = PaintingStyle.fill;
@@ -385,6 +436,7 @@ class FeatureQueryResult implements Iterable<Feature> {
 
 class Feature {
   final Map<String, dynamic> attributes = {};
+  dynamic geometry;
 }
 
 enum SpatialRelationship { intersects }
@@ -401,4 +453,6 @@ class GeometryEngine {
   static double lengthGeodetic(dynamic geometry, {dynamic unit}) => 1000.0;
   static double length(dynamic geometry) => 1000.0;
   static double distanceGeodetic(dynamic point1, dynamic point2, {dynamic unit}) => 500.0;
+  static double distance(dynamic point1, dynamic point2) => 500.0;
+  static dynamic project(dynamic geometry, {SpatialReference? outputSpatialReference}) => geometry;
 }
