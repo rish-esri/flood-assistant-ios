@@ -1,0 +1,26 @@
+name: display_a_map
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  arcgis_maps: ^300.0.0
+  arcgis_maps_toolkit: ^300.0.0
+  # Pinned to 0.16.5 (pre-monorepo-split): later flutter_gemma releases pull in
+  # hooks ^2.0.0, which conflicts with arcgis_maps' hooks ^1.0.0 dependency.
+  flutter_gemma: 0.16.5
+  speech_to_text: ^7.0.0
+  flutter_tts: ^4.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
