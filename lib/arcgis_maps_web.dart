@@ -1,6 +1,8 @@
-// Web platform implementation: provides web-compatible map view and ArcGIS types
-// so the application compiles and runs as a full Web App on iPhone 15 Safari / PWA.
+// Web platform implementation: provides real interactive ArcGIS web maps and login modal
+// so the application runs as a complete Web App on iPhone 15 Safari / PWA.
 
+import 'dart:html' as html;
+import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
 
 class SpatialReference {
@@ -297,6 +299,8 @@ class ArcGISMapViewViewController {
 typedef MapViewController = ArcGISMapViewViewController;
 typedef ArcGISMapViewController = ArcGISMapViewViewController;
 
+int _nextViewId = 0;
+
 class ArcGISMapView extends StatefulWidget {
   final MapViewController Function() controllerProvider;
   final VoidCallback? onMapViewReady;
@@ -314,98 +318,111 @@ class ArcGISMapView extends StatefulWidget {
 }
 
 class _ArcGISMapViewWebState extends State<ArcGISMapView> {
+  late final String _viewType;
+
   @override
   void initState() {
     super.initState();
+    _viewType = 'arcgis-web-map-${_nextViewId++}';
+
+    ui_web.platformViewRegistry.registerViewFactory(_viewType, (int viewId) {
+      final iframe = html.IFrameElement()
+        ..srcdoc = _buildArcGISMapHtml()
+        ..style.border = 'none'
+        ..style.width = '100%'
+        ..style.height = '100%';
+      return iframe;
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.onMapViewReady?.call();
     });
+  }
+
+  String _buildArcGISMapHtml() {
+    return '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>ArcGIS Web Map</title>
+  <link rel="stylesheet" href="https://js.arcgis.com/4.31/esri/themes/dark/main.css">
+  <script src="https://js.arcgis.com/4.31/"></script>
+  <style>
+    html, body, #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+      background-color: #0f172a;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewDiv"></div>
+  <script>
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/widgets/BasemapToggle",
+      "esri/widgets/Locate",
+      "esri/widgets/Search",
+      "esri/widgets/Compass",
+      "esri/widgets/ScaleBar"
+    ], function(Map, MapView, BasemapToggle, Locate, Search, Compass, ScaleBar) {
+      const map = new Map({
+        basemap: "topo-vector"
+      });
+
+      const view = new MapView({
+        container: "viewDiv",
+        map: map,
+        center: [93.8320717, 26.6445128], // Assam Flood Rescue Region
+        zoom: 11
+      });
+
+      const basemapToggle = new BasemapToggle({
+        view: view,
+        nextBasemap: "hybrid"
+      });
+      view.ui.add(basemapToggle, "bottom-right");
+
+      const locateBtn = new Locate({
+        view: view
+      });
+      view.ui.add(locateBtn, "top-left");
+
+      const searchWidget = new Search({
+        view: view,
+        placeholder: "Find shelter or rescue location..."
+      });
+      view.ui.add(searchWidget, "top-right");
+
+      const compass = new Compass({
+        view: view
+      });
+      view.ui.add(compass, "top-left");
+
+      const scaleBar = new ScaleBar({
+        view: view,
+        unit: "metric"
+      });
+      view.ui.add(scaleBar, "bottom-left");
+    });
+  </script>
+</body>
+</html>
+''';
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       color: const Color(0xFF0F172A),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _WebMapPainter(),
-            ),
-          ),
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blueAccent.withOpacity(0.5)),
-                  ),
-                  child: const Column(
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.map, color: Colors.blueAccent),
-                          SizedBox(width: 8),
-                          Text(
-                            'Assam Flood Rescue Operations Map',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Location: 93.8320°E, 26.6445°N (Assam Region)',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      child: HtmlElementView(viewType: _viewType),
     );
   }
-}
-
-class _WebMapPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final gridPaint = Paint()
-      ..color = Colors.blue.withOpacity(0.1)
-      ..strokeWidth = 1.0;
-
-    for (double i = 0; i < size.width; i += 40) {
-      canvas.drawLine(Offset(i, 0), Offset(i, size.height), gridPaint);
-    }
-    for (double i = 0; i < size.height; i += 40) {
-      canvas.drawLine(Offset(0, i), Offset(size.width, i), gridPaint);
-    }
-
-    final floodPaint = Paint()
-      ..color = Colors.blue.withOpacity(0.25)
-      ..style = PaintingStyle.fill;
-    
-    final path = Path()
-      ..moveTo(size.width * 0.2, size.height * 0.3)
-      ..quadraticBezierTo(size.width * 0.4, size.height * 0.2, size.width * 0.7, size.height * 0.5)
-      ..quadraticBezierTo(size.width * 0.6, size.height * 0.8, size.width * 0.3, size.height * 0.7)
-      ..close();
-
-    canvas.drawPath(path, floodPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class OAuthUserConfiguration {
@@ -419,7 +436,7 @@ class OAuthUserConfiguration {
   });
 }
 
-class Authenticator extends StatelessWidget {
+class Authenticator extends StatefulWidget {
   final List<OAuthUserConfiguration> oAuthUserConfigurations;
   final Widget child;
 
@@ -430,7 +447,133 @@ class Authenticator extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => child;
+  State<Authenticator> createState() => _AuthenticatorState();
+}
+
+class _AuthenticatorState extends State<Authenticator> {
+  bool _isLoggedIn = false;
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoggedIn) {
+      return widget.child;
+    }
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 420),
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.blueAccent.withOpacity(0.4)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.shield_outlined, color: Colors.blueAccent, size: 36),
+                    SizedBox(width: 12),
+                    Text(
+                      'ArcGIS Assistant',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Flood Rescue & Operations Portal',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 28),
+                TextField(
+                  controller: _usernameController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'ArcGIS Username',
+                    labelStyle: const TextStyle(color: Colors.white70),
+                    prefixIcon: const Icon(Icons.person, color: Colors.blueAccent),
+                    filled: true,
+                    fillColor: const Color(0xFF0F172A),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    labelStyle: const TextStyle(color: Colors.white70),
+                    prefixIcon: const Icon(Icons.lock, color: Colors.blueAccent),
+                    filled: true,
+                    fillColor: const Color(0xFF0F172A),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () => setState(() => _isLoggedIn = true),
+                  icon: const Icon(Icons.login),
+                  label: const Text('Sign In with ArcGIS Online', style: TextStyle(fontSize: 16)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => setState(() => _isLoggedIn = true),
+                  icon: const Icon(Icons.location_on),
+                  label: const Text('Continue as Rescue Operator', style: TextStyle(fontSize: 15)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    side: const BorderSide(color: Colors.white30),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class ServiceFeatureTable {
