@@ -2,8 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:arcgis_maps/arcgis_maps.dart';
-import 'package:arcgis_maps_toolkit/arcgis_maps_toolkit.dart';
+import 'arcgis_export.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
