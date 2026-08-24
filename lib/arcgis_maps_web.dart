@@ -51,6 +51,7 @@ class PortalItem {
 }
 
 enum SelectionMode { new_ }
+enum GeodeticCurveType { geodesic }
 
 class Layer {
   String name;
@@ -73,8 +74,21 @@ class Layer {
 
   void clearSelection() {}
   void selectFeature(dynamic feature) {}
-  Future<dynamic> selectFeaturesWithQuery(dynamic query, SelectionMode mode) async {
+
+  Future<dynamic> selectFeaturesWithQuery({
+    dynamic parameters,
+    dynamic query,
+    dynamic mode,
+  }) async {
     return FeatureQueryResult();
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #selectFeaturesWithQuery) {
+      return Future.value(FeatureQueryResult());
+    }
+    return super.noSuchMethod(invocation);
   }
 }
 
@@ -458,12 +472,23 @@ class QueryParameters {
   SpatialRelationship? spatialRelationship;
 }
 
+class GeodeticDistanceResult {
+  final double distance;
+  GeodeticDistanceResult([this.distance = 500.0]);
+}
+
 class GeometryEngine {
   static dynamic buffer(dynamic geometry, double distance) => geometry;
-  static bool intersects([dynamic geometry1, dynamic geometry2]) => true;
-  static double lengthGeodetic([dynamic geometry, dynamic unit]) => 1000.0;
+
+  static bool intersects({dynamic geometry1, dynamic geometry2}) => true;
+
+  static double lengthGeodetic({dynamic geometry, dynamic curveType, dynamic unit}) => 1000.0;
+
   static double length([dynamic geometry]) => 1000.0;
-  static double distanceGeodetic([dynamic point1, dynamic point2, dynamic unit]) => 500.0;
-  static double distance([dynamic point1, dynamic point2]) => 500.0;
+
+  static GeodeticDistanceResult distanceGeodetic({dynamic point1, dynamic point2, dynamic curveType, dynamic unit}) => GeodeticDistanceResult();
+
+  static double distance({dynamic geometry1, dynamic geometry2, dynamic point1, dynamic point2}) => 500.0;
+
   static dynamic project(dynamic geometry, {SpatialReference? outputSpatialReference}) => geometry;
 }

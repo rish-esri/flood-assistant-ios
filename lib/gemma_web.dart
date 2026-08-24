@@ -6,15 +6,34 @@ import 'package:flutter/foundation.dart';
 enum ModelType { qwen, gemma }
 enum ModelFileType { task, litertlm }
 
+class GemmaModelInstaller {
+  GemmaModelInstaller fromNetwork(String url) => this;
+  GemmaModelInstaller withProgress(dynamic progressCallback) => this;
+  Future<void> install() async {}
+}
+
 class FlutterGemma {
   static Future<void> initialize() async {
     debugPrint('FlutterGemma web adapter initialized');
   }
 
-  static Future<bool> isModelInstalled(dynamic modelType) async => true;
-  static Future<void> installModel({dynamic modelType, dynamic modelFileType, dynamic modelFileName, dynamic url, dynamic onProgress}) async {}
+  static Future<bool> isModelInstalled(dynamic modelType, [dynamic fileName]) async => true;
 
-  static Future<InferenceModel> getActiveModel({int? maxTokens}) async {
+  static GemmaModelInstaller installModel({
+    dynamic modelType,
+    dynamic fileType,
+    dynamic modelFileType,
+    dynamic modelFileName,
+    dynamic url,
+    dynamic onProgress,
+  }) {
+    return GemmaModelInstaller();
+  }
+
+  static Future<InferenceModel> getActiveModel({
+    int? maxTokens,
+    String? systemInstruction,
+  }) async {
     return InferenceModel();
   }
 }
@@ -25,11 +44,12 @@ class InferenceModel {
     double? temperature,
     int? topK,
     int? maxTokens,
+    String? systemInstruction,
   }) async {
     return InferenceModel();
   }
 
-  Future<InferenceChat> createChat() async => InferenceChat();
+  Future<InferenceChat> createChat({String? systemInstruction}) async => InferenceChat();
   void close() {}
 }
 
@@ -42,6 +62,7 @@ class Message {
 
 class TextResponse {
   final String text;
+  String get token => text;
   TextResponse(this.text);
 }
 
