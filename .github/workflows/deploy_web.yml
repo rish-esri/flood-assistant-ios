@@ -33,6 +33,7 @@ jobs:
       - name: Build Flutter Web
         run: |
           flutter pub get
+          find ~/.pub-cache -name "llm_inference_web.dart" -exec sed -i 's/ = 1024//g; s/ = 1//g; s/ = 1.0//g' {} + || true
           flutter build web --release --base-href "/flood-assistant-ios/"
           touch build/web/.nojekyll
 
