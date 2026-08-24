@@ -27,7 +27,7 @@ jobs:
         run: |
           flutter pub get
           flutter precache --ios
-          flutter create --platforms=ios .
+          flutter build ios --config-only
           cd ios
           pod install --repo-update
           cd ..
