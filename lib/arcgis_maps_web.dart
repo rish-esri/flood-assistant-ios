@@ -50,6 +50,8 @@ class PortalItem {
   PortalItem.withPortalAndItemId({required this.portal, required this.itemId});
 }
 
+enum SelectionMode { new_ }
+
 class Layer {
   String name;
   bool isVisible;
@@ -71,6 +73,9 @@ class Layer {
 
   void clearSelection() {}
   void selectFeature(dynamic feature) {}
+  Future<dynamic> selectFeaturesWithQuery(dynamic query, SelectionMode mode) async {
+    return FeatureQueryResult();
+  }
 }
 
 class FeatureLayer extends Layer {
@@ -203,9 +208,14 @@ class RouteResult {
   List<Route> routes = [Route()];
 }
 
+class LoadError {
+  String message = 'Error loading RouteTask';
+}
+
 class RouteTask {
   String? apiKey;
   LoadStatus loadStatus = LoadStatus.loaded;
+  LoadError? loadError;
 
   RouteTask.withUri(Uri uri);
 
@@ -271,6 +281,7 @@ class ArcGISMapViewViewController {
 }
 
 typedef MapViewController = ArcGISMapViewViewController;
+typedef ArcGISMapViewController = ArcGISMapViewViewController;
 
 class ArcGISMapView extends StatefulWidget {
   final MapViewController Function() controllerProvider;
@@ -449,10 +460,10 @@ class QueryParameters {
 
 class GeometryEngine {
   static dynamic buffer(dynamic geometry, double distance) => geometry;
-  static bool intersects(dynamic geometry1, dynamic geometry2) => true;
-  static double lengthGeodetic(dynamic geometry, {dynamic unit}) => 1000.0;
-  static double length(dynamic geometry) => 1000.0;
-  static double distanceGeodetic(dynamic point1, dynamic point2, {dynamic unit}) => 500.0;
-  static double distance(dynamic point1, dynamic point2) => 500.0;
+  static bool intersects([dynamic geometry1, dynamic geometry2]) => true;
+  static double lengthGeodetic([dynamic geometry, dynamic unit]) => 1000.0;
+  static double length([dynamic geometry]) => 1000.0;
+  static double distanceGeodetic([dynamic point1, dynamic point2, dynamic unit]) => 500.0;
+  static double distance([dynamic point1, dynamic point2]) => 500.0;
   static dynamic project(dynamic geometry, {SpatialReference? outputSpatialReference}) => geometry;
 }

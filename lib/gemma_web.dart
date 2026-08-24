@@ -11,7 +11,10 @@ class FlutterGemma {
     debugPrint('FlutterGemma web adapter initialized');
   }
 
-  static Future<InferenceModel> getActiveModel() async {
+  static Future<bool> isModelInstalled(dynamic modelType) async => true;
+  static Future<void> installModel({dynamic modelType, dynamic modelFileType, dynamic modelFileName, dynamic url, dynamic onProgress}) async {}
+
+  static Future<InferenceModel> getActiveModel({int? maxTokens}) async {
     return InferenceModel();
   }
 }
@@ -34,9 +37,21 @@ class Message {
   final String text;
   final bool isUser;
   Message({required this.text, required this.isUser});
+  Message.text({required this.text, required this.isUser});
+}
+
+class TextResponse {
+  final String text;
+  TextResponse(this.text);
 }
 
 class InferenceChat {
+  Future<void> addQueryChunk(Message message) async {}
+
+  Stream<TextResponse> generateChatResponseAsync() async* {
+    yield TextResponse("Assam Flood Assistant (Web Mode): Processing your rescue query.");
+  }
+
   Future<String> generateResponse(String prompt) async {
     return "Assam Flood Assistant (Web Mode): Processing rescue request for prompt '$prompt'.";
   }
