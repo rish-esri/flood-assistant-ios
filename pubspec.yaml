@@ -24,3 +24,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+dependency_overrides:
+  device_info_plus: 11.3.0
